@@ -18,6 +18,11 @@ public partial class MainWindow : Window
     internal async Task SmokeTestAsync()
     {
         if (ViewModel.HasError) throw new InvalidOperationException(ViewModel.ErrorMessage);
+        if (ViewModel.ToolDetails.Contains("起動失敗") || ViewModel.ToolDetails.Contains("確認失敗")
+            || ViewModel.ToolDetails.Contains("見つかりません"))
+            throw new InvalidOperationException("同梱ツールを起動できません。\n" + ViewModel.ToolDetails);
+        if (OperatingSystem.IsMacOS() && !ViewModel.UpdateCommand.CanExecute(null))
+            throw new InvalidOperationException("ユーザー領域のyt-dlpを更新できません。");
         var fixture = MediaInfo.Parse("""
           {"id":"sample","title":"風景の記録 — 週末の小さな旅","duration":214,"uploader":"Sample video",
            "formats":[
