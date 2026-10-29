@@ -1,0 +1,127 @@
+name: Build and release
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-2025
+            rid: win-x64
+          - os: macos-15
+            rid: osx-arm64
+          - os: macos-15-intel
+            rid: osx-x64
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Cache native tools and corresponding source
+        id: native-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            tools/ffmpeg*
+            tools/ffprobe*
+            artifacts/native-sources
+          key: native-${{ matrix.rid }}-${{ hashFiles('scripts/build-ffmpeg.sh') }}
+      - name: Set up MinGW build tools
+        if: runner.os == 'Windows' && steps.native-cache.outputs.cache-hit != 'true'
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            base-devel git curl tar xz make diffutils
+            mingw-w64-x86_64-gcc mingw-w64-x86_64-pkgconf mingw-w64-x86_64-nasm
+      - name: Build Windows FFmpeg from source
+        if: runner.os == 'Windows' && steps.native-cache.outputs.cache-hit != 'true'
+        shell: msys2 {0}
+        run: bash scripts/build-ffmpeg.sh
+      - name: Build macOS FFmpeg from source
+        if: runner.os == 'macOS' && steps.native-cache.outputs.cache-hit != 'true'
+        shell: bash
+        run: bash scripts/build-ffmpeg.sh
+      - name: Fetch standalone engines
+        shell: pwsh
+        run: ./scripts/fetch-engines.ps1 -Runtime '${{ matrix.rid }}'
+      - name: Publish and test Windows package
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          ./scripts/build.ps1
+          $env:YTDLPGUI_SETTINGS_DIR = Join-Path $PWD 'artifacts/preview-settings'
+          $taskProcess = Start-Process ./artifacts/YtDlpGui/YtDlpGui.exe -ArgumentList '--render-preview', (Join-Path $PWD 'artifacts/preview') -WindowStyle Hidden -PassThru
+          if (-not $taskProcess.WaitForExit(90000)) { $taskProcess.Kill($true); throw 'GUI preview timed out' }
+          if ($taskProcess.ExitCode -ne 0) { throw 'GUI preview failed' }
+          Compress-Archive -Path artifacts/YtDlpGui -DestinationPath artifacts/YtDlpGui-win-x64.zip
+      - name: Publish and test macOS package
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          bash scripts/build-mac.sh '${{ matrix.rid }}'
+          export PATH="$PWD/tools:$PATH"
+          dotnet run --project tests/YtDlpGui.Tests -c Release -- "$PWD" --integration
+          python3 scripts/smoke-mac.py 'artifacts/${{ matrix.rid }}/YtDlpGui.app'
+      - name: Assemble matching third-party source and build recipe
+        shell: bash
+        run: |
+          cp THIRD-PARTY-NOTICES.md artifacts/native-sources/
+          cp scripts/fetch-engines.ps1 artifacts/engine-sources/
+          tar -czf 'artifacts/YtDlpGui-sources-${{ matrix.rid }}.tar.gz' -C artifacts native-sources engine-sources
+      - name: Upload packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: package-${{ matrix.rid }}
+          path: |
+            artifacts/YtDlpGui-${{ matrix.rid }}.zip
+            artifacts/YtDlpGui-sources-${{ matrix.rid }}.tar.gz
+          if-no-files-found: error
+      - name: Upload verification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: verification-${{ matrix.rid }}
+          path: |
+            artifacts/preview
+            artifacts/tests/**/results.txt
+            artifacts/smoke-settings/startup-error.txt
+            artifacts/preview-settings/startup-error.txt
+  release:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: package-*
+          path: artifacts/release
+          merge-multiple: true
+      - name: Create checksums and draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          cd artifacts/release
+          sha256sum *.zip *.tar.gz > SHA256SUMS.txt
+          if gh release view v1.1.0 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload v1.1.0 ./* --clobber --repo "$GITHUB_REPOSITORY"
+          else
+            gh release create v1.1.0 ./* --draft --target "$GITHUB_SHA" --title 'yt-dlp GUI v1.1.0 — Windows / macOS' --notes-file ../../RELEASE_NOTES.md --repo "$GITHUB_REPOSITORY"
+          fi

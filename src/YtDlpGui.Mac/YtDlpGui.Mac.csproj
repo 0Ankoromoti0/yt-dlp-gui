@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>YtDlpGui</AssemblyName>
+    <Version>1.1.0</Version>
+    <AvaloniaUseCompiledBindingsByDefault>false</AvaloniaUseCompiledBindingsByDefault>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Avalonia.Desktop" Version="11.3.21" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.21" />
+    <ProjectReference Include="../YtDlpGui.Core/YtDlpGui.Core.csproj" />
+    <Compile Include="../YtDlpGui/MainViewModel.cs" Link="MainViewModel.cs" />
+    <Compile Include="../YtDlpGui/Commands.cs" Link="Commands.cs" />
+    <Compile Include="../YtDlpGui/IDesktopPlatform.cs" Link="IDesktopPlatform.cs" />
+  </ItemGroup>
+</Project>
