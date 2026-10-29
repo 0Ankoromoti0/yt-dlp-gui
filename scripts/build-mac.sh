@@ -58,4 +58,3 @@ while IFS= read -r -d '' file; do
 done < <(find "$output" -type f -print0)
 ditto -c -k --sequesterRsrc --keepParent "$app" "$root/artifacts/YtDlpGui-$rid.zip"
 echo "$app"
-

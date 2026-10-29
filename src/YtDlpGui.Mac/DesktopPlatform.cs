@@ -36,6 +36,18 @@ public sealed class DesktopPlatform : IDesktopPlatform
     private static bool IsBundledEngine(string path) => Path.GetFullPath(path).StartsWith(
         Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "tools")) + Path.DirectorySeparatorChar, StringComparison.Ordinal);
     public bool IsManagedEngine(string? path) => path is not null && Path.GetFullPath(path) == Path.Combine(EngineDirectory, ToolPaths.ExecutableName("yt-dlp"));
+    public void CopyEngine(string source, string destination)
+    {
+        // Replace the inode as well as the bytes so macOS does not reuse a cached code signature.
+        var temporary = destination + "." + Guid.NewGuid().ToString("N");
+        try
+        {
+            File.Copy(source, temporary);
+            if (!OperatingSystem.IsWindows()) File.SetUnixFileMode(temporary, File.GetUnixFileMode(source));
+            File.Move(temporary, destination, overwrite: true);
+        }
+        finally { if (File.Exists(temporary)) File.Delete(temporary); }
+    }
     public async Task<string?> SelectFolderAsync(string currentDirectory)
     {
         var window = (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow

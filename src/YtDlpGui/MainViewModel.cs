@@ -309,7 +309,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
         bool copied = false;
         try
         {
-            File.Copy(engine, backup, true); copied = true;
+            _platform.CopyEngine(engine, backup); copied = true;
             var result = await _runner.RunAsync(engine, ["--ignore-config", "--update", "--no-colors"], _operation!.Token,
                 (line, _) => EventsForUpdate(line));
             if (result.ExitCode != 0) throw new IOException("更新に失敗しました。更新前のバージョンへ戻します。\n" + result.Error);
@@ -320,7 +320,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
         }
         catch (Exception ex)
         {
-            if (copied) File.Copy(backup, engine, true);
+            if (copied) _platform.CopyEngine(backup, engine);
             if (ex is OperationCanceledException) { Stage = "更新を中断しました"; Status = "更新前のバージョンを復元しました。"; }
             else ShowError(ex);
         }
@@ -334,7 +334,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
     {
         try
         {
-            File.Copy(_tools.YtDlp + ".previous", _tools.YtDlp!, true);
+            _platform.CopyEngine(_tools.YtDlp + ".previous", _tools.YtDlp!);
             ToolSummary = "yt-dlpを前のバージョンへ復元しました";
             Status = "「再確認」でツールのバージョンを確認できます。";
         }

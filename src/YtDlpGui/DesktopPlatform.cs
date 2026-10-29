@@ -10,6 +10,7 @@ namespace YtDlpGui;
 public sealed class DesktopPlatform : IDesktopPlatform
 {
     public ToolPaths DiscoverTools() => ToolPaths.Discover(AppContext.BaseDirectory);
+    public void CopyEngine(string source, string destination) => File.Copy(source, destination, true);
     public bool IsManagedEngine(string? path) => path is not null && Path.GetFullPath(path).StartsWith(
         Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "tools")) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase);
     public Task<string?> SelectFolderAsync(string currentDirectory)

@@ -23,6 +23,28 @@ public partial class MainWindow : Window
             throw new InvalidOperationException("同梱ツールを起動できません。\n" + ViewModel.ToolDetails);
         if (OperatingSystem.IsMacOS() && !ViewModel.UpdateCommand.CanExecute(null))
             throw new InvalidOperationException("ユーザー領域のyt-dlpを更新できません。");
+        if (OperatingSystem.IsMacOS())
+        {
+            if (string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("YTDLPGUI_SETTINGS_DIR")))
+                throw new InvalidOperationException("起動テストには専用の設定フォルダーを指定してください。");
+            var platform = new DesktopPlatform();
+            var engine = platform.DiscoverTools().YtDlp!;
+            var backup = engine + ".previous";
+            if (File.Exists(backup)) throw new InvalidOperationException("起動テストには空の設定フォルダーを指定してください。");
+            try
+            {
+                platform.CopyEngine(engine, backup);
+                if (!ViewModel.RestoreCommand.CanExecute(null)) throw new InvalidOperationException("復元操作が無効です。");
+                ViewModel.RestoreCommand.Execute(null);
+                if (ViewModel.HasError) throw new InvalidOperationException(ViewModel.ErrorMessage);
+                using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+                var result = await new ProcessRunner().RunAsync(engine, ["--version"], timeout.Token, captureOutput: true);
+                if (result.ExitCode != 0) throw new InvalidOperationException("復元したyt-dlpを起動できません。\n" + result.Error);
+                Console.WriteLine("PASS: macOS engine backup/restore remains executable.");
+            }
+            finally { if (File.Exists(backup)) File.Delete(backup); }
+            await ViewModel.InitializeAsync();
+        }
         var fixture = MediaInfo.Parse("""
           {"id":"sample","title":"風景の記録 — 週末の小さな旅","duration":214,"uploader":"Sample video",
            "formats":[
