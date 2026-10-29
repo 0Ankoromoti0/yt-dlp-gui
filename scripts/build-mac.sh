@@ -42,12 +42,20 @@ codesign --verify --deep --strict "$app"
 # No Homebrew or machine-local library may leak into the portable distribution.
 while IFS= read -r -d '' file; do
   if file "$file" | grep -q 'Mach-O'; then
-    # otool prints the inspected file's absolute path as an unindented header.
-    # Only indented dependency entries (including every universal-binary slice) count.
-    if otool -L "$file" | grep -E '^[[:space:]]+(/opt/homebrew/|/usr/local/|/Users/|/mingw)'; then
+    # LC_ID_DYLIB is the library's own install ID, not a loaded dependency.
+    # Inspect actual load commands and search paths in every architecture slice.
+    dependencies="$(otool -l "$file" | awk '
+      $1 == "cmd" {
+        library = ($2 ~ /^LC_(LOAD|LOAD_WEAK|LAZY_LOAD|REEXPORT|LOAD_UPWARD)_DYLIB$/)
+        searchpath = ($2 == "LC_RPATH")
+      }
+      (library && $1 == "name") || (searchpath && $1 == "path") { print $2 }
+    ')"
+    if printf '%s\n' "$dependencies" | grep -E '^(/opt/homebrew/|/usr/local/|/Users/|/mingw)'; then
       echo "Non-portable dependency: $file" >&2; exit 1
     fi
   fi
 done < <(find "$output" -type f -print0)
 ditto -c -k --sequesterRsrc --keepParent "$app" "$root/artifacts/YtDlpGui-$rid.zip"
 echo "$app"
+
