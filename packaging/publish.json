@@ -1,0 +1,36 @@
+{
+  "tag": "v1.1.0",
+  "commit": "533c776610e0216bd9a016a4d874f4db6bceb5ff",
+  "run_id": 40915569712,
+  "release_id": 428150728,
+  "assets": {
+    "SHA256SUMS.txt": {
+      "size": 559,
+      "digest": "sha256:a143f610a00a74503b916fc1b5bb08214ddd3731852d5b53224b566197c53005"
+    },
+    "YtDlpGui-osx-arm64.zip": {
+      "size": 140352987,
+      "digest": "sha256:5508a0823fe868e8b6abf94b2fbdf3304f2d287c9827f1c7f28bd3b25f42689c"
+    },
+    "YtDlpGui-osx-x64.zip": {
+      "size": 148644895,
+      "digest": "sha256:a2c382520836dc116495f3fb6bfa41dcb392124c19b1002b78428c8bc367975b"
+    },
+    "YtDlpGui-sources-osx-arm64.tar.gz": {
+      "size": 71004011,
+      "digest": "sha256:81c0237ec145490648a7a86985b73a0e46655df1782298801668b3413b93631b"
+    },
+    "YtDlpGui-sources-osx-x64.tar.gz": {
+      "size": 71004017,
+      "digest": "sha256:830cce3036ad2c7d0da46a7faa3eaec16776935197fc99a85d6bbbc590739574"
+    },
+    "YtDlpGui-sources-win-x64.tar.gz": {
+      "size": 70994529,
+      "digest": "sha256:8992fee3822ab46395b9cbdb78e76cbdf73dec27f9b51b68cc1c21ae3c832106"
+    },
+    "YtDlpGui-win-x64.zip": {
+      "size": 155858853,
+      "digest": "sha256:49a5d5f0588922bc46c0a931fb1bbb864a16947508b1cf37452f116a833dbcb0"
+    }
+  }
+}
