@@ -42,7 +42,9 @@ codesign --verify --deep --strict "$app"
 # No Homebrew or machine-local library may leak into the portable distribution.
 while IFS= read -r -d '' file; do
   if file "$file" | grep -q 'Mach-O'; then
-    if otool -L "$file" | grep -E '/opt/homebrew/|/usr/local/|/Users/|/mingw'; then
+    # otool prints the inspected file's absolute path as an unindented header.
+    # Only indented dependency entries (including every universal-binary slice) count.
+    if otool -L "$file" | grep -E '^[[:space:]]+(/opt/homebrew/|/usr/local/|/Users/|/mingw)'; then
       echo "Non-portable dependency: $file" >&2; exit 1
     fi
   fi
