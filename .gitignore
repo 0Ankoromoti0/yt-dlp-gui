@@ -1,0 +1,9 @@
+.dotnet/
+.build/
+**/bin/
+**/obj/
+artifacts/
+tools/
+*.user
+*.part
+*.ytdl
