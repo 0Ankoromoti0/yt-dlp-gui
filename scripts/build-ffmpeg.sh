@@ -10,9 +10,10 @@ export PATH="$prefix/bin:$PATH"
 export PKG_CONFIG_PATH="$prefix/lib/pkgconfig"
 jobs="${BUILD_JOBS:-4}"
 fetch() {
-  curl --fail --location --retry 3 "$1" --output "$sources/$2"
+  echo "Fetching $2"
+  curl --fail --location --connect-timeout 20 --max-time 180 --retry 3 --retry-all-errors "$1" --output "$sources/$2"
 }
-fetch https://ffmpeg.org/releases/ffmpeg-8.0.1.tar.xz ffmpeg-8.0.1.tar.xz
+fetch https://github.com/FFmpeg/FFmpeg/archive/refs/tags/n8.0.1.tar.gz ffmpeg-8.0.1.tar.gz
 fetch https://downloads.sourceforge.net/project/lame/lame/3.100/lame-3.100.tar.gz lame-3.100.tar.gz
 fetch https://downloads.xiph.org/releases/opus/opus-1.5.2.tar.gz opus-1.5.2.tar.gz
 fetch https://github.com/webmproject/libvpx/archive/refs/tags/v1.15.2.tar.gz libvpx-1.15.2.tar.gz
@@ -21,7 +22,15 @@ x264_sha="$(git ls-remote https://github.com/mirror/x264.git refs/heads/stable |
 test -n "$x264_sha"
 printf '%s\n' "$x264_sha" > "$sources/x264-commit.txt"
 fetch "https://github.com/mirror/x264/archive/$x264_sha.tar.gz" x264.tar.gz
-for archive in "$sources"/*.tar.*; do tar -xf "$archive" -C "$work"; done
+for archive in "$sources"/*.tar.*; do
+  if [[ "$(basename "$archive")" == ffmpeg-* ]]; then
+    mkdir -p "$work/ffmpeg-8.0.1"
+    tar -xf "$archive" --strip-components=1 -C "$work/ffmpeg-8.0.1"
+  else
+    tar -xf "$archive" -C "$work"
+  fi
+done
+export CFLAGS="${CFLAGS:--O2 -std=gnu11}"
 host_flags=()
 ffmpeg_flags=()
 static_flags=''
@@ -40,22 +49,27 @@ case "$(uname -s)" in
   *) echo 'Only macOS and MinGW are supported.' >&2; exit 1 ;;
 esac
 cd "$work/lame-3.100"
+echo 'Building LAME'
 ./configure --prefix="$prefix" "${host_flags[@]}" --disable-shared --enable-static --disable-frontend
 make -j"$jobs"
 make install
 cd "$work/opus-1.5.2"
+echo 'Building Opus'
 ./configure --prefix="$prefix" "${host_flags[@]}" --disable-shared --enable-static --disable-extra-programs --disable-doc
 make -j"$jobs"
 make install
 cd "$work/x264-$x264_sha"
+echo 'Building x264'
 ./configure --prefix="$prefix" "${host_flags[@]}" --enable-static --disable-cli --disable-opencl --disable-asm
 make -j"$jobs"
 make install
 cd "$work/libvpx-1.15.2"
+echo 'Building libvpx'
 ./configure --prefix="$prefix" --target=generic-gnu --disable-shared --enable-static --disable-examples --disable-tools --disable-docs --disable-unit-tests
 make -j"$jobs"
 make install
 cd "$work/ffmpeg-8.0.1"
+echo 'Building FFmpeg'
 ./configure --prefix="$prefix" --extra-cflags="-I$prefix/include" --extra-ldflags="-L$prefix/lib $static_flags" \
   --pkg-config-flags=--static --disable-autodetect --disable-shared --enable-static \
   --disable-debug --disable-doc --disable-ffplay --enable-gpl --enable-libx264 --enable-libvpx \
