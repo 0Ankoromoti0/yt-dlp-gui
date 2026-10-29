@@ -5,9 +5,16 @@ cd "$root"
 rid="${1:-osx-arm64}"
 case "$rid" in osx-arm64|osx-x64) ;; *) echo 'Expected osx-arm64 or osx-x64' >&2; exit 1 ;; esac
 app="$root/artifacts/$rid/YtDlpGui.app"
+# Only the generated bundle for the explicitly validated RID may be replaced.
+case "$app" in
+  "$root/artifacts/osx-arm64/YtDlpGui.app"|"$root/artifacts/osx-x64/YtDlpGui.app") ;;
+  *) echo 'Unexpected bundle output path' >&2; exit 1 ;;
+esac
+if [[ -d "$app" ]]; then rm -rf -- "$app"; fi
 output="$app/Contents/MacOS"
 mkdir -p "$output" "$app/Contents/Resources"
-dotnet publish src/YtDlpGui.Mac/YtDlpGui.Mac.csproj -c Release -r "$rid" --self-contained true -p:PublishSingleFile=false -o "$output"
+# Bundle managed DLLs so macOS only sees native code in Contents/MacOS.
+dotnet publish src/YtDlpGui.Mac/YtDlpGui.Mac.csproj -c Release -r "$rid" --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=false -p:DebugType=embedded -o "$output"
 mkdir -p "$output/tools"
 for tool in yt-dlp ffmpeg ffprobe deno; do
   test -f "$root/tools/$tool"

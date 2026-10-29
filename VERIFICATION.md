@@ -1,9 +1,9 @@
 # 検証結果
 
-## v1.1.0 mac対応（2026-10-29 / 日本時間）
+## v1.1.0 mac対応（2026-10-30 / 日本時間）
 
 - Windows版WPFとmac版AvaloniaのReleaseビルド成功。警告0件・エラー0件。
-- Windows上で既存の統合テスト27件成功・失敗0件。`artifacts/tests/20261029-143123/results.txt`。
+- Windows上で統合テスト29件成功・失敗0件。`artifacts/tests/20261029-152911/results.txt`（フォルダー名はUTC）。従来の27件に、OSごとのツール名・同梱版優先、および共有画面状態・設定復元・フォルダー操作・URL変更時の候補破棄の検証を追加。
 - GitHub ActionsはWindows x64、macOS Apple Silicon、macOS Intelの各環境で同じ統合テストと配布パッケージの画面起動を実行する。CIの実行結果と画面PNGは各実行のverificationアーティファクトを参照。
 - 対話的なフォルダー選択、Finder、Gatekeeperの初回許可操作、エンジン更新サーバーとの実通信は自動テストに含めていない。
 

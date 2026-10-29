@@ -7,4 +7,6 @@ tools/
 *.user
 *.part
 *.ytdl
+__pycache__/
+*.py[cod]
 

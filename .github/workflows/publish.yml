@@ -1,0 +1,24 @@
+name: Publish verified release
+on:
+  push:
+    branches: [main]
+    paths: ['packaging/publish.json']
+  workflow_dispatch:
+permissions:
+  actions: read
+  contents: write
+concurrency:
+  group: publish-release
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify publication guards
+        run: python3 -m unittest discover -s tests -p test_publish_release.py
+      - name: Publish the reviewed assets from the successful build
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/publish-release.py packaging/publish.json
