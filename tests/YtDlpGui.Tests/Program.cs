@@ -48,6 +48,42 @@ var fixture = """
  """;
 var media = MediaInfo.Parse(fixture, "https://example.com/watch?a=1&b=2");
 var fakeTools = new ToolPaths("yt-dlp.exe", @"C:\tools\ffmpeg.exe", @"C:\tools\ffprobe.exe", @"C:\tools\deno.exe");
+await Test("Bundled native tool names take precedence over PATH", () => Unit(() =>
+{
+    var bundle = Path.Combine(root, "bundle");
+    Directory.CreateDirectory(Path.Combine(bundle, "tools"));
+    foreach (var name in new[] { "yt-dlp", "ffmpeg", "ffprobe", "deno" })
+        File.WriteAllText(Path.Combine(bundle, "tools", ToolPaths.ExecutableName(name)), "fixture");
+    var discovered = ToolPaths.Discover(bundle);
+    Assert(discovered.CanDownload && discovered.Deno is not null, "native tool names not discovered");
+    Assert(discovered.YtDlp == Path.Combine(bundle, "tools", ToolPaths.ExecutableName("yt-dlp")), "bundled tool not preferred");
+}));
+await Test("Shared screen state preserves choices, folder actions and URL invalidation", () => Unit(() =>
+{
+    var previousSettings = Environment.GetEnvironmentVariable("YTDLPGUI_SETTINGS_DIR");
+    Environment.SetEnvironmentVariable("YTDLPGUI_SETTINGS_DIR", Path.Combine(root, "viewmodel-settings"));
+    try
+    {
+        var platform = new YtDlpGui.DesktopPlatform { FolderToSelect = Path.Combine(root, "保存先 空白") };
+        Directory.CreateDirectory(platform.FolderToSelect);
+        var vm = new YtDlpGui.MainViewModel(platform) { Url = media.Url };
+        vm.LoadMedia(media);
+        Assert(vm.VideoChoices.Count == 3 && vm.SelectedVideo?.Selector == "1080+a-aac", "shared format selection changed");
+        vm.AudioOnly = true; vm.AudioOutput = AudioOutput.Mp3; vm.AudioBitrate = 320;
+        Assert(vm.ShowBitrate, "MP3 bitrate hidden");
+        vm.BrowseCommand.Execute(null);
+        Assert(vm.SaveDirectory == platform.FolderToSelect, "native picker selection not applied");
+        vm.OpenFolderCommand.Execute(null);
+        Assert(platform.OpenedFolder == vm.SaveDirectory, "open-folder action not delegated");
+        vm.SaveSettings();
+        var restored = new YtDlpGui.MainViewModel(platform);
+        Assert(restored.AudioOnly && restored.AudioOutput == AudioOutput.Mp3 && restored.AudioBitrate == 320
+            && restored.SaveDirectory == vm.SaveDirectory, "screen settings not restored");
+        vm.Url = "https://example.com/changed";
+        Assert(!vm.HasMedia && vm.SelectedVideo is null && vm.VideoChoices.Count == 0 && !vm.DownloadCommand.CanExecute(null), "stale selection survived URL change");
+    }
+    finally { Environment.SetEnvironmentVariable("YTDLPGUI_SETTINGS_DIR", previousSettings); }
+}));
 var videoChoices = FormatSelection.Videos(media, VideoContainer.Mp4);
 await Test("MP4 filters incompatible codecs and combines AAC", () => Unit(() =>
 {

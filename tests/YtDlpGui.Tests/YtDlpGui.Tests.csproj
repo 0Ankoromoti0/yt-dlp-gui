@@ -6,4 +6,9 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup><ProjectReference Include="../../src/YtDlpGui.Core/YtDlpGui.Core.csproj" /></ItemGroup>
+  <ItemGroup>
+    <Compile Include="../../src/YtDlpGui/MainViewModel.cs" Link="MainViewModel.cs" />
+    <Compile Include="../../src/YtDlpGui/Commands.cs" Link="Commands.cs" />
+    <Compile Include="../../src/YtDlpGui/IDesktopPlatform.cs" Link="IDesktopPlatform.cs" />
+  </ItemGroup>
 </Project>

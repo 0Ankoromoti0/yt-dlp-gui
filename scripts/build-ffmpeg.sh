@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Build portable tools from the exact sources shipped alongside the release.
-set -euo pipefail
+set -eo pipefail
 root="$(cd "$(dirname "$0")/.." && pwd)"
 work="$root/.build/native"
 prefix="$work/prefix"
