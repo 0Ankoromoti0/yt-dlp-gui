@@ -26,6 +26,11 @@ Copy-Item -LiteralPath (Join-Path $taskRoot 'LICENSE') -Destination $taskOutput 
 Copy-Item -LiteralPath (Join-Path $taskRoot 'VERIFICATION.md') -Destination $taskOutput -Force
 $taskLicense = Join-Path $taskRoot 'licenses'
 if (Test-Path -LiteralPath $taskLicense) { Copy-Item -LiteralPath $taskLicense -Destination $taskOutput -Recurse -Force }
+$taskNativeLicenses = Join-Path $taskRoot 'artifacts/native-sources'
+if (Test-Path -LiteralPath "$taskNativeLicenses/FFmpeg-COPYING.GPLv2") {
+    Copy-Item -LiteralPath "$taskNativeLicenses/FFmpeg-COPYING.GPLv2" -Destination "$taskOutput/licenses/ffmpeg-LICENSE.txt" -Force
+    Get-ChildItem -LiteralPath $taskNativeLicenses -File | Where-Object Name -Match '(COPYING|LICENSE)$' | Copy-Item -Destination "$taskOutput/licenses" -Force
+}
 if (-not $SkipTests) {
     & $taskDotnet build tests/YtDlpGui.Tests/YtDlpGui.Tests.csproj -c $Configuration --disable-build-servers
     if ($LASTEXITCODE -ne 0) { throw 'テストのビルドに失敗しました。' }

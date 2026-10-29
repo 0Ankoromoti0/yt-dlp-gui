@@ -55,6 +55,10 @@ jobs:
           function curl() { /c/Windows/System32/curl.exe --retry-all-errors "$@"; }
           export -f curl
           bash scripts/build-ffmpeg.sh
+      - name: Install Intel assembler
+        if: matrix.rid == 'osx-x64' && steps.native-cache.outputs.cache-hit != 'true'
+        shell: bash
+        run: HOMEBREW_NO_AUTO_UPDATE=1 brew install nasm
       - name: Build macOS FFmpeg from source
         if: runner.os == 'macOS' && steps.native-cache.outputs.cache-hit != 'true'
         shell: bash

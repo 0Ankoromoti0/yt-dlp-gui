@@ -16,6 +16,12 @@ for tool in yt-dlp ffmpeg ffprobe deno; do
 done
 for file in README.md THIRD-PARTY-NOTICES.md LICENSE VERIFICATION.md; do cp "$file" "$app/Contents/Resources/"; done
 cp -R licenses "$app/Contents/Resources/"
+if [[ -f artifacts/native-sources/FFmpeg-COPYING.GPLv2 ]]; then
+  cp artifacts/native-sources/FFmpeg-COPYING.GPLv2 "$app/Contents/Resources/licenses/ffmpeg-LICENSE.txt"
+  for license in artifacts/native-sources/*-COPYING artifacts/native-sources/*-LICENSE; do
+    cp "$license" "$app/Contents/Resources/licenses/"
+  done
+fi
 cp packaging/macos/Info.plist "$app/Contents/Info.plist"
 # Ad-hoc signing supplies valid Mach-O signatures, including the JIT entitlement.
 # This does not claim a Developer ID identity or Apple notarization.

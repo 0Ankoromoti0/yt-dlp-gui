@@ -10,8 +10,8 @@ $taskYtAsset = if ($Runtime -eq 'win-x64') { 'yt-dlp.exe' } else { 'yt-dlp_macos
 $taskSuffix = if ($Runtime -eq 'win-x64') { '.exe' } else { '' }
 $taskYtUrl = "https://github.com/yt-dlp/yt-dlp/releases/download/$taskYtVersion"
 Invoke-WebRequest "$taskYtUrl/$taskYtAsset" -OutFile "$taskTools/yt-dlp$taskSuffix"
-$taskChecksums = (Invoke-WebRequest "$taskYtUrl/SHA2-256SUMS").Content
-$taskExpected = (($taskChecksums -split "`n" | Where-Object { $_.TrimEnd().EndsWith(" $taskYtAsset") }) -split '\s+')[0]
+$taskExpected = if ($Runtime -eq 'win-x64') { '66674953fe251b89f4d08c5f0e35e0728679bd67ab3d7d05c0562af101dd3e7a' }
+    else { '0f192b7ec147ab6288885d6351d9ab67367640029b4377576ef46dd79cf7b202' }
 if (-not $taskExpected -or (Get-FileHash "$taskTools/yt-dlp$taskSuffix" -Algorithm SHA256).Hash -ne $taskExpected) { throw 'yt-dlp checksum mismatch' }
 $taskTarget = switch ($Runtime) { 'win-x64' { 'x86_64-pc-windows-msvc' }; 'osx-arm64' { 'aarch64-apple-darwin' }; 'osx-x64' { 'x86_64-apple-darwin' } }
 $taskDenoUrl = "https://github.com/denoland/deno/releases/download/$taskDenoVersion/deno-$taskTarget.zip"
