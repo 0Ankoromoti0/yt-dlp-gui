@@ -9,7 +9,7 @@ permissions:
   contents: read
 concurrency:
   group: release-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 jobs:
   build:
     strategy:
@@ -50,11 +50,24 @@ jobs:
       - name: Build Windows FFmpeg from source
         if: runner.os == 'Windows' && steps.native-cache.outputs.cache-hit != 'true'
         shell: msys2 {0}
-        run: bash scripts/build-ffmpeg.sh
+        run: |
+          # Use Windows' TLS backend for the source archives, including retryable TLS resets.
+          function curl() { /c/Windows/System32/curl.exe --retry-all-errors "$@"; }
+          export -f curl
+          bash scripts/build-ffmpeg.sh
       - name: Build macOS FFmpeg from source
         if: runner.os == 'macOS' && steps.native-cache.outputs.cache-hit != 'true'
         shell: bash
         run: bash scripts/build-ffmpeg.sh
+      - name: Retain native tools before package verification
+        if: steps.native-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            tools/ffmpeg*
+            tools/ffprobe*
+            artifacts/native-sources
+          key: native-${{ matrix.rid }}-${{ hashFiles('scripts/build-ffmpeg.sh') }}
       - name: Fetch standalone engines
         shell: pwsh
         run: ./scripts/fetch-engines.ps1 -Runtime '${{ matrix.rid }}'

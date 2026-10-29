@@ -30,6 +30,7 @@ public partial class MainWindow : Window
         ViewModel.VideoContainer = VideoContainer.Mp4;
         ViewModel.LoadMedia(fixture);
         await Dispatcher.UIThread.InvokeAsync(() => { }, DispatcherPriority.Background);
+        await Task.Delay(200);
         if (ViewModel.VideoChoices.Count != 2 || !ViewModel.DownloadCommand.CanExecute(null))
             throw new InvalidOperationException("動画の画面状態が不正です。");
         var directory = Environment.GetEnvironmentVariable("YTDLPGUI_PREVIEW_DIR");
@@ -45,6 +46,7 @@ public partial class MainWindow : Window
         ViewModel.AudioOnly = true;
         ViewModel.AudioOutput = AudioOutput.Mp3;
         await Dispatcher.UIThread.InvokeAsync(() => { }, DispatcherPriority.Background);
+        await Task.Delay(200);
         if (!ViewModel.ShowBitrate || !ViewModel.DownloadCommand.CanExecute(null))
             throw new InvalidOperationException("音声の画面状態が不正です。");
         Render("audio.png");
